@@ -65,9 +65,9 @@
 			children = (
 				277EA7811B414BE4003DD3E3 /* PacketMemoryManager.h */,
 				277EA7801B414BE4003DD3E3 /* PacketMemoryManager.cpp */,
-				277EA7711B40D183003DD3E3 /* main.mm */,
 				277EA77E1B412529003DD3E3 /* Utility.h */,
 				277EA77D1B412529003DD3E3 /* Utility.cpp */,
+				277EA7711B40D183003DD3E3 /* main.mm */,
 			);
 			path = srFile;
 			sourceTree = "<group>";
@@ -264,6 +264,7 @@
 				277EA7771B40D183003DD3E3 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};

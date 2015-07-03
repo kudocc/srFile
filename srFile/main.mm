@@ -30,62 +30,64 @@
 #define LISTENQ 5
 
 /**
- * @return 0 is error, otherwise is the length of sended file
+ * @param localPath the path of file in local
+ * @param filePath the path send to peer
+ * @return 0 indicates error, otherwise it's the length of sended file
  */
-long send(int clientSocket, std::string path);
+long send(int clientSocket, std::string localPath, std::string filePath);
 
 long recv(int socket, std::string directoryPath);
 
 int main(int argc, const char * argv[]) {
-    @autoreleasepool {
-        if (argc != 4) {
-            NSLog(@"argument count should be 3");
+    if (argc != 4) {
+        printf("argument count should be 3\n");
+        return 0;
+    }
+    const char *pCommand = argv[1];
+    NSString *command = [NSString stringWithUTF8String:pCommand];
+    if ([command isEqualToString:@"send"]) {
+        // send
+        std::string filePath = argv[2];
+        bool isDirectory = false;
+        if (!isFileExist(filePath, isDirectory)) {
+            printf("file not exist %s\n", filePath.c_str());
             return 0;
         }
-        const char *pCommand = argv[1];
-        NSString *command = [NSString stringWithUTF8String:pCommand];
-        if ([command isEqualToString:@"send"]) {
-            // send
-            NSString *filePath = [NSString stringWithUTF8String:argv[2]];
-            BOOL isDirectory = NO;
-            if (![[NSFileManager defaultManager] fileExistsAtPath:filePath isDirectory:&isDirectory]) {
-                NSLog(@"file not exist");
-                return 0;
-            }
-            NSString *remote = [NSString stringWithUTF8String:argv[3]];
-            NSArray *array = [remote componentsSeparatedByString:@":"];
-            if ([array count] != 2) {
-                NSLog(@"remote server format error, remoteIpAddress:remotePort");
-                return 0;
-            }
-            NSString *remoteServer = array[0];
-            NSString *remotePort = array[1];
-            unsigned short port = (unsigned short)[remotePort intValue];
-            if (port < 1024) {
-                NSLog(@"local port should be larger than 1024");
-                return 0;
-            }
-            int clientfd = 0;
-            struct sockaddr_in servaddr;
-            bzero(&servaddr, sizeof(servaddr));
-            servaddr.sin_family = AF_INET;
-            servaddr.sin_addr.s_addr = inet_addr([remoteServer UTF8String]);
-            servaddr.sin_port = htons(port);
-            clientfd = socket (AF_INET, SOCK_STREAM, 0);
-            int i = connect(clientfd, (const struct sockaddr *)&servaddr, sizeof(servaddr));
-            if (i != 0) {
-                printf("connect error\n");
-                return 0;
-            }
-            // send file name length and file name
+        std::string remote = argv[3];
+        size_t pos = remote.find_last_of(':');
+        if (pos == std::string::npos) {
+            printf("remote server format error, remoteIpAddress:remotePort\n");
+            return 0;
+        }
+        std::string remoteServer = remote.substr(0, pos);
+        std::string remotePort = remote.substr(pos+1);
+        unsigned short port = (unsigned short)atoi(remotePort.c_str());
+        if (port < 1024) {
+            printf("local port should be larger than 1024\n");
+            return 0;
+        }
+        int clientfd = 0;
+        struct sockaddr_in servaddr;
+        bzero(&servaddr, sizeof(servaddr));
+        servaddr.sin_family = AF_INET;
+        servaddr.sin_addr.s_addr = inet_addr(remoteServer.c_str());
+        servaddr.sin_port = htons(port);
+        clientfd = socket (AF_INET, SOCK_STREAM, 0);
+        int i = connect(clientfd, (const struct sockaddr *)&servaddr, sizeof(servaddr));
+        if (i != 0) {
+            printf("connect error\n");
+            return 0;
+        }
+        // send file name length and file name
+        if (isDirectory) {
             std::vector<std::string> vect;
-            bool res = listdir([filePath UTF8String], 1, vect);
+            bool res = listdir(filePath, 1, vect);
             if (!res) {
                 printf("enumerate file error\n");
                 return 0;
             }
             for (std::vector<std::string>::iterator begin = vect.begin(); begin != vect.end(); ++begin) {
-                long totalSend = send(clientfd, *begin);
+                long totalSend = send(clientfd, *begin, *begin);
                 if (totalSend > 0) {
                     printf("total send:%ld\n", totalSend);
                 } else {
@@ -93,74 +95,86 @@ int main(int argc, const char * argv[]) {
                     break;
                 }
             }
-            close(clientfd);
-            printf("close socket\n");
-        } else if ([command isEqualToString:@"recv"]) {
-            // recv
-            std::string directory = argv[2];
-            bool isDirectory = isDirectoryOnThePath(directory);
-            if (!isDirectory) {
-                NSLog(@"directory not exist or it is not directory");
-                return 0;
-            }
-            unsigned short port = (unsigned short)atoi(argv[3]);
-            if (port < 1024) {
-                NSLog(@"local port should be larger than 1024");
-                return 0;
-            }
-            int listenfd = 0 ;
-            int connfd = 0 ;
-            socklen_t clilen ;
-            struct sockaddr_in cliaddr, servaddr ;
-            listenfd = socket (AF_INET, SOCK_STREAM, 0);
-            bzero(&servaddr, sizeof(servaddr));
-            servaddr.sin_family = AF_INET;
-            servaddr.sin_addr.s_addr = htonl (INADDR_ANY);
-            servaddr.sin_port = htons (port);
-            bind(listenfd, (const struct sockaddr *)&servaddr, sizeof(servaddr));
-            printf("begin listen on port:%u\n", port) ;
-            int rLiten = listen(listenfd, LISTENQ);
-            if (rLiten != 0) {
-                printf("listen error:%d\n", errno) ;
-                return -1 ;
-            }
-            clilen = sizeof(cliaddr);
-            connfd = accept(listenfd, (struct sockaddr *)&cliaddr, &clilen);
-            if (connfd < 0) {
-                printf("error\n") ;
-                return 0;
-            } else {
-                const char *ip = inet_ntoa(cliaddr.sin_addr) ;
-                int port = cliaddr.sin_port ;
-                printf("accept from ip:%s, port:%d\n", ip, port) ;
-            }
-            
-            recv(connfd, directory);
-            
-            close(connfd);
-            close(listenfd);
         } else {
-            NSLog(@"command should be send or recv");
+            std::string fileName;
+            size_t pos = filePath.find_last_of(FilePathSeparator);
+            if (pos == std::string::npos) {
+                fileName = filePath;
+            } else {
+                fileName = filePath.substr(pos+1, filePath.length()-pos-1);
+            }
+            long totalSend = send(clientfd, filePath, fileName);
+            if (totalSend > 0) {
+                printf("total send:%ld\n", totalSend);
+            } else {
+                printf("send fail on file path:%s\n", filePath.c_str());
+            }
         }
+        close(clientfd);
+        printf("close socket\n");
+    } else if ([command isEqualToString:@"recv"]) {
+        // recv
+        std::string directory = argv[2];
+        bool isDirectory = isDirectoryOnThePath(directory);
+        if (!isDirectory) {
+            NSLog(@"directory not exist or it is not directory");
+            return 0;
+        }
+        unsigned short port = (unsigned short)atoi(argv[3]);
+        if (port < 1024) {
+            NSLog(@"local port should be larger than 1024");
+            return 0;
+        }
+        int listenfd = 0 ;
+        int connfd = 0 ;
+        socklen_t clilen ;
+        struct sockaddr_in cliaddr, servaddr ;
+        listenfd = socket (AF_INET, SOCK_STREAM, 0);
+        bzero(&servaddr, sizeof(servaddr));
+        servaddr.sin_family = AF_INET;
+        servaddr.sin_addr.s_addr = htonl (INADDR_ANY);
+        servaddr.sin_port = htons (port);
+        bind(listenfd, (const struct sockaddr *)&servaddr, sizeof(servaddr));
+        printf("begin listen on port:%u\n", port) ;
+        int rLiten = listen(listenfd, LISTENQ);
+        if (rLiten != 0) {
+            printf("listen error:%d\n", errno) ;
+            return -1 ;
+        }
+        clilen = sizeof(cliaddr);
+        connfd = accept(listenfd, (struct sockaddr *)&cliaddr, &clilen);
+        if (connfd < 0) {
+            printf("error\n") ;
+            return 0;
+        } else {
+            const char *ip = inet_ntoa(cliaddr.sin_addr) ;
+            int port = cliaddr.sin_port ;
+            printf("accept from ip:%s, port:%d\n", ip, port) ;
+        }
+        
+        recv(connfd, directory);
+        
+        close(connfd);
+        close(listenfd);
+    } else {
+        NSLog(@"command should be send or recv");
     }
     return 0;
 }
 
-long send(int clientfd, std::string relativeFilePath)
+long send(int clientfd, std::string localPath, std::string filePath)
 {
-    std::string fileName = relativeFilePath;
-    // TODO:remove the . and .. at the front of file name
-    FILE *file = fopen(relativeFilePath.c_str(), "rb");
+    FILE *file = fopen(localPath.c_str(), "rb");
     if (!file) {
-        printf("open file error, %s\n", relativeFilePath.c_str());
+        printf("open file error, %s\n", localPath.c_str());
         return 0;
     }
     
-    printf("start to send file %s\n", relativeFilePath.c_str());
+    printf("start to send file %s\n", localPath.c_str());
     
     CPacketMemoryManager packetMemory = CPacketMemoryManager();
     // file name length
-    unsigned short lenFileName = (unsigned short)fileName.length();
+    unsigned short lenFileName = (unsigned short)filePath.length();
     unsigned short lenFileNameNetworkEndian = convertLocalEndianToNetworkEndian_us(lenFileName);
     packetMemory.addToBuffer(&lenFileNameNetworkEndian, sizeof(unsigned short));
     
@@ -171,7 +185,7 @@ long send(int clientfd, std::string relativeFilePath)
     packetMemory.addToBuffer(&uiFileSize, sizeof(uiFileSize));
     
     // file name
-    packetMemory.addToBuffer(fileName.c_str(), (unsigned int)fileName.length());
+    packetMemory.addToBuffer(filePath.c_str(), (unsigned int)filePath.length());
     
     long totalSend = 0;
     size_t sizeRead = 0;
@@ -211,7 +225,7 @@ long send(int clientfd, std::string relativeFilePath)
         }
     } while (sizeRead > 0);
     fclose(file);
-    printf("end of sending file %s\n", relativeFilePath.c_str());
+    printf("end of sending file %s\n", localPath.c_str());
     return 1;
 }
 
@@ -246,7 +260,9 @@ long recv(int connfd, std::string directory)
                             // directory + / + file name
                             std::string fileName = name;
                             std::string filePath = directory;
-                            filePath.append(1, FilePathSeparator);
+                            if (!(filePath[filePath.length()-1] == FilePathSeparator)) {
+                                filePath.append(1, FilePathSeparator);
+                            }
                             filePath.append(fileName);
                             bool res = createAllMissingDirectoriesOnThePath(filePath);
                             if (res == false) {

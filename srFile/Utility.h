@@ -24,8 +24,9 @@ unsigned short convertLocalEndianToNetworkEndian_us(unsigned short value);
 unsigned int convertNetworkEndianToLocalEndian_ui(unsigned int value);
 unsigned int convertLocalEndianToNetworkEndian_ui(unsigned int value);
 
-bool listdir(const char *path, int level, std::vector<std::string> &vectPath);
+bool listdir(std::string path, int level, std::vector<std::string> &vectPath);
 
+bool isFileExist(std::string path, bool &isDirectory);
 /**
  * return false either the path is not exist or it is a file not a directory
  */

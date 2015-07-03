@@ -82,6 +82,25 @@ unsigned int convertLocalEndianToNetworkEndian_ui(unsigned int value)
     return value;
 }
 
+bool isFileExist(std::string path, bool &isDirectory)
+{
+    struct stat st;
+    int res = stat(path.c_str(), &st);
+    if (res != 0) {
+        // error, ENOENT is 2
+        printf("stat on path:%s, error %d\n", path.c_str(), errno);
+        isDirectory = false;
+        return false;
+    } else {
+        if (st.st_mode & S_IFDIR) {
+            isDirectory = true;
+        } else {
+            isDirectory = false;
+        }
+        return true;
+    }
+}
+
 bool isDirectoryOnThePath(std::string path)
 {
     struct stat st;
@@ -137,12 +156,12 @@ bool createAllMissingDirectoriesOnThePath(std::string path)
     return true;
 }
 
-bool listdir(const char *rootPath, int level, std::vector<std::string> &vectPath)
+bool listdir(std::string rootPath, int level, std::vector<std::string> &vectPath)
 {
     DIR *dir = NULL;
     struct dirent *entry = NULL;
     
-    if (!(dir = opendir(rootPath)))
+    if (!(dir = opendir(rootPath.c_str())))
         return false;
     if (!(entry = readdir(dir)))
         return false;
@@ -150,7 +169,7 @@ bool listdir(const char *rootPath, int level, std::vector<std::string> &vectPath
     do {
         if (entry->d_type == DT_DIR) {
             char path[1024];
-            int len = snprintf(path, sizeof(path)-1, "%s%c%s", rootPath, FilePathSeparator, entry->d_name);
+            int len = snprintf(path, sizeof(path)-1, "%s%c%s", rootPath.c_str(), FilePathSeparator, entry->d_name);
             path[len] = 0;
             if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
                 continue;
