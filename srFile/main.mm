@@ -5,8 +5,7 @@
 //  Created by yuanrui on 15/6/29.
 //  Copyright (c) 2015年 KudoCC. All rights reserved.
 //
-
-#import <Foundation/Foundation.h>
+#import <unistd.h>
 #import <sys/socket.h>
 #import <netinet/in.h>
 #import <arpa/inet.h>
@@ -21,7 +20,7 @@
  */
 
 /*
- * send format: length of file name (2 byte, big endian) + file size (4 byte, big endian) + file name + file data
+ * send format: 1 char to indicate what the path separator ('/' for unix and '\' for windows) is + length of file name (2 byte, big endian) + file size (4 byte, big endian) + file name + file data
  * the file name is a relative file path to the destination directory of recv
  * for example : localDirectory of send is abc, it is a directory, the utlity will send all the content in the directory, file ab.txt is in the directory, we will send abc/ab.txt to the peer. If destination directory of recv is ~/Desktop, then the file should be save at ~/Desktop/abc/ab.txt
  * Note : The localDirectory of send command must locate at the same directory of the utility
@@ -43,9 +42,8 @@ int main(int argc, const char * argv[]) {
         printf("argument count should be 3\n");
         return 0;
     }
-    const char *pCommand = argv[1];
-    NSString *command = [NSString stringWithUTF8String:pCommand];
-    if ([command isEqualToString:@"send"]) {
+    std::string command = argv[1];
+    if (command.compare("send") == 0) {
         // send
         std::string filePath = argv[2];
         bool isDirectory = false;
@@ -112,17 +110,17 @@ int main(int argc, const char * argv[]) {
         }
         close(clientfd);
         printf("close socket\n");
-    } else if ([command isEqualToString:@"recv"]) {
+    } else if (command.compare("recv") == 0) {
         // recv
         std::string directory = argv[2];
         bool isDirectory = isDirectoryOnThePath(directory);
         if (!isDirectory) {
-            NSLog(@"directory not exist or it is not directory");
+            printf("directory not exist or it is not directory\n");
             return 0;
         }
         unsigned short port = (unsigned short)atoi(argv[3]);
         if (port < 1024) {
-            NSLog(@"local port should be larger than 1024");
+            printf("local port should be larger than 1024\n");
             return 0;
         }
         int listenfd = 0 ;
@@ -144,7 +142,7 @@ int main(int argc, const char * argv[]) {
         clilen = sizeof(cliaddr);
         connfd = accept(listenfd, (struct sockaddr *)&cliaddr, &clilen);
         if (connfd < 0) {
-            printf("error\n") ;
+            printf("accept error\n");
             return 0;
         } else {
             const char *ip = inet_ntoa(cliaddr.sin_addr) ;
@@ -157,7 +155,7 @@ int main(int argc, const char * argv[]) {
         close(connfd);
         close(listenfd);
     } else {
-        NSLog(@"command should be send or recv");
+        printf("command should be send or recv\n");
     }
     return 0;
 }
@@ -173,6 +171,8 @@ long send(int clientfd, std::string localPath, std::string filePath)
     printf("start to send file %s\n", localPath.c_str());
     
     CPacketMemoryManager packetMemory = CPacketMemoryManager();
+    // path separator
+    packetMemory.addToBuffer(&FilePathSeparator, 1);
     // file name length
     unsigned short lenFileName = (unsigned short)filePath.length();
     unsigned short lenFileNameNetworkEndian = convertLocalEndianToNetworkEndian_us(lenFileName);
@@ -246,19 +246,31 @@ long recv(int connfd, std::string directory)
                 totalRecv += r;
                 packetMemory.addToBuffer(bufferRead, (unsigned int)r);
                 if (file == NULL) {
-                    if (packetMemory.getUseBufferLength() > 6) {
-                        unsigned short lengthOfFileName = *((unsigned short *)packetMemory.getBufferPointer());
+                    if (packetMemory.getUseBufferLength() > 7) {
+                        char *pointer = (char *)packetMemory.getBufferPointer();
+                        char peerFileSeparator = *pointer;
+                        unsigned short lengthOfFileName = *((unsigned short *)(pointer+1));
                         lengthOfFileName = convertNetworkEndianToLocalEndian_us(lengthOfFileName);
-                        unsigned int ui = *(unsigned int *)(packetMemory.getBufferPointer()+2);
+                        unsigned int ui = *(unsigned int *)(pointer+3);
                         fileSize = convertNetworkEndianToLocalEndian_ui(ui);
-                        if (packetMemory.getUseBufferLength()-6 >= lengthOfFileName) {
+                        if (packetMemory.getUseBufferLength()-7 >= lengthOfFileName) {
                             // file path
                             char name[100] = {0};
-                            memcpy(name, packetMemory.getBufferPointer()+6, lengthOfFileName);
+                            memcpy(name, pointer+7, lengthOfFileName);
                             printf("nameLenth:%u, file size:%u, fileName:%s\n", lengthOfFileName, fileSize, name);
                             // open file
-                            // directory + / + file name
+                            // directory + file path separator + file name
                             std::string fileName = name;
+                            // convert peer separator to local
+                            if (FilePathSeparator != peerFileSeparator) {
+                                size_t pos = 0;
+                                while ((pos = fileName.find_first_of(peerFileSeparator, pos)) != std::string::npos) {
+                                    fileName = fileName.replace(pos, 1, 1, FilePathSeparator);
+                                    while (pos < fileName.length() && fileName[pos] == peerFileSeparator) {
+                                        ++pos;
+                                    }
+                                }
+                            }
                             std::string filePath = directory;
                             if (!(filePath[filePath.length()-1] == FilePathSeparator)) {
                                 filePath.append(1, FilePathSeparator);

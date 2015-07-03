@@ -21,7 +21,7 @@ public:
     ~CPacketMemoryManager() ;
 public:
     unsigned int getUseBufferLength() ;
-    unsigned char * getBufferPointer() ;
+    void* getBufferPointer() ;
     void addToBuffer(const void *data, unsigned int len) ;
     void removeBuffer(unsigned int len) ;
 };

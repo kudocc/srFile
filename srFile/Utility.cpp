@@ -15,7 +15,11 @@
 #include <sys/stat.h>
 #include <errno.h>
 
+#ifdef __WINDOWS__
+const char FilePathSeparator = '\\';
+#else
 const char FilePathSeparator = '/';
+#endif
 
 bool localEndianIsLittleEndian()
 {

@@ -28,7 +28,7 @@ unsigned int CPacketMemoryManager::getUseBufferLength()
     return bufferUseLength ;
 }
 
-unsigned char * CPacketMemoryManager::getBufferPointer()
+void* CPacketMemoryManager::getBufferPointer()
 {
     if (pointer) {
         return pointer ;
