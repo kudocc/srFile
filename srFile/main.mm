@@ -287,7 +287,7 @@ long recv(int connfd, std::string directory)
                                 break;
                             }
                             printf("open file success %s\n", filePath.c_str());
-                            packetMemory.removeBuffer(6+lengthOfFileName);
+                            packetMemory.removeBuffer(7+lengthOfFileName);
                         }
                     }
                 }
