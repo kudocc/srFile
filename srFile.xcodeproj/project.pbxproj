@@ -7,7 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		277EA7721B40D183003DD3E3 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 277EA7711B40D183003DD3E3 /* main.m */; };
+		277EA7721B40D183003DD3E3 /* main.mm in Sources */ = {isa = PBXBuildFile; fileRef = 277EA7711B40D183003DD3E3 /* main.mm */; };
+		277EA77F1B412529003DD3E3 /* Utility.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 277EA77D1B412529003DD3E3 /* Utility.cpp */; };
+		277EA7821B414BE4003DD3E3 /* PacketMemoryManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 277EA7801B414BE4003DD3E3 /* PacketMemoryManager.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -24,7 +26,11 @@
 
 /* Begin PBXFileReference section */
 		277EA76E1B40D183003DD3E3 /* srFile */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = srFile; sourceTree = BUILT_PRODUCTS_DIR; };
-		277EA7711B40D183003DD3E3 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
+		277EA7711B40D183003DD3E3 /* main.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = main.mm; sourceTree = "<group>"; };
+		277EA77D1B412529003DD3E3 /* Utility.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Utility.cpp; sourceTree = "<group>"; };
+		277EA77E1B412529003DD3E3 /* Utility.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Utility.h; sourceTree = "<group>"; };
+		277EA7801B414BE4003DD3E3 /* PacketMemoryManager.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PacketMemoryManager.cpp; sourceTree = "<group>"; };
+		277EA7811B414BE4003DD3E3 /* PacketMemoryManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PacketMemoryManager.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -57,7 +63,11 @@
 		277EA7701B40D183003DD3E3 /* srFile */ = {
 			isa = PBXGroup;
 			children = (
-				277EA7711B40D183003DD3E3 /* main.m */,
+				277EA7811B414BE4003DD3E3 /* PacketMemoryManager.h */,
+				277EA7801B414BE4003DD3E3 /* PacketMemoryManager.cpp */,
+				277EA7711B40D183003DD3E3 /* main.mm */,
+				277EA77E1B412529003DD3E3 /* Utility.h */,
+				277EA77D1B412529003DD3E3 /* Utility.cpp */,
 			);
 			path = srFile;
 			sourceTree = "<group>";
@@ -72,6 +82,7 @@
 				277EA76A1B40D183003DD3E3 /* Sources */,
 				277EA76B1B40D183003DD3E3 /* Frameworks */,
 				277EA76C1B40D183003DD3E3 /* CopyFiles */,
+				277EA7831B41568A003DD3E3 /* ShellScript */,
 			);
 			buildRules = (
 			);
@@ -113,12 +124,30 @@
 		};
 /* End PBXProject section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		277EA7831B41568A003DD3E3 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "set -e\nset -o pipefail\n\ncp -rf $BUILT_PRODUCTS_DIR/$EXECUTABLE_FOLDER_PATH ~/Desktop/\ncp -rf $BUILT_PRODUCTS_DIR/$EXECUTABLE_FOLDER_PATH ~/Desktop/srFileTest/";
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		277EA76A1B40D183003DD3E3 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				277EA7721B40D183003DD3E3 /* main.m in Sources */,
+				277EA7821B414BE4003DD3E3 /* PacketMemoryManager.cpp in Sources */,
+				277EA77F1B412529003DD3E3 /* Utility.cpp in Sources */,
+				277EA7721B40D183003DD3E3 /* main.mm in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
