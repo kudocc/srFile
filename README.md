@@ -2,8 +2,7 @@
 
 transmit directory/files utility through TCP
 
-**srFile** is a utility used to transmit file or directory through TCP. My target is to cross platform, but it only works on OSX.
-
+**srFile** is a utility used to transmit file or directory through TCP. It works on Mac OS, I'll add a Windows version soon.
 There're two commands 'send' and 'recv'.
 
 a) send has two arguments, they indicates where the file/directory is and where file/directory send to respectively.
