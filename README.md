@@ -37,4 +37,4 @@ After all files finish sending, it closes the socket.
 
 # Detail of receive
 
-On receive side it will receive the data comes from socket until the sender closes the socket. It parses the stream according to the format of [Detail of send](#1). Once it get the file's name, it converts the path separator in the file's name to local separator if the peer path separator is different from the local path separator.
+On receive side it will receive the data comes from socket until the sender closes the socket. It parses the stream according to the format of [Detail of send](https://github.com/kudocc/srFile/blob/master/README.md#detail-of-send). Once it get the file's name, it converts the path separator in the file's name to local separator if the peer path separator is different from the local path separator.
