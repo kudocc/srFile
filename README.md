@@ -24,10 +24,17 @@ An example of recv, it listens on port 1235 and put all the files or directory i
 
 # Detail of send
 
-First it enumerates all the files and sub directories recursively, for each of them, it send four parts
-* 1. length of file name (2 bytes with network endian)
-* 2. file size (4 bytes with network endian)
-* 3. file name
-* 4. file content
+First it enumerates all the files and sub directories recursively, (if you send a file, there is just one file), for each of them, there are five parts:
+* 1. path separator of file system which runs the send command ('/' on Mac OS and '\' on Windows)
+* 2. length of file name (2 bytes with network endian)
+* 3. file size (4 bytes with network endian)
+* 4. file name
+* 5. file content
 
-After all files finish sending, it close the socket.
+Note: If you're sending a file, the file name above is just the file's name. If you're sending a directory, the file name above is the relative pathname which is relative to the directory you specify in srFile command arguments.
+
+After all files finish sending, it closes the socket.
+
+# Detail of receive
+
+On receive side it will receive the data comes from socket until the sender closes the socket. It parses the stream according to the format of [Detail of send](#1). Once it get the file's name, it converts the path separator in the file's name to local separator if the peer path separator is different from the local path separator.
