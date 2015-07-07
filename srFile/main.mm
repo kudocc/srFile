@@ -177,13 +177,11 @@ long send(int clientfd, std::string localPath, std::string filePath)
     unsigned short lenFileName = (unsigned short)filePath.length();
     unsigned short lenFileNameNetworkEndian = convertLocalEndianToNetworkEndian_us(lenFileName);
     packetMemory.addToBuffer(&lenFileNameNetworkEndian, sizeof(unsigned short));
-    
     // file size
     long lFileSize = (long)getFileSize(file);
     unsigned int uiFileSize = (unsigned int)lFileSize;
     uiFileSize = convertLocalEndianToNetworkEndian_ui(uiFileSize);
     packetMemory.addToBuffer(&uiFileSize, sizeof(uiFileSize));
-    
     // file name
     packetMemory.addToBuffer(filePath.c_str(), (unsigned int)filePath.length());
     
@@ -193,12 +191,11 @@ long send(int clientfd, std::string localPath, std::string filePath)
         unsigned char buffer[2048];
         sizeRead = fread(buffer, 1, sizeof(buffer), file);
         if (sizeRead == 0) {
-            // endof file or error
+            // end of file or error
             if (!feof(file)) {
                 printf("read error\n");
             }
         } else {
-//            printf("fread %zu\n", sizeRead);
             packetMemory.addToBuffer(buffer, (unsigned short)sizeRead);
         }
         if (packetMemory.getUseBufferLength() > 0) {
@@ -245,75 +242,73 @@ long recv(int connfd, std::string directory)
             if (r > 0) {
                 totalRecv += r;
                 packetMemory.addToBuffer(bufferRead, (unsigned int)r);
-                if (file == NULL) {
-                    if (packetMemory.getUseBufferLength() > 7) {
-                        char *pointer = (char *)packetMemory.getBufferPointer();
-                        char peerFileSeparator = *pointer;
-                        unsigned short lengthOfFileName = *((unsigned short *)(pointer+1));
-                        lengthOfFileName = convertNetworkEndianToLocalEndian_us(lengthOfFileName);
-                        unsigned int ui = *(unsigned int *)(pointer+3);
-                        fileSize = convertNetworkEndianToLocalEndian_ui(ui);
-                        if (packetMemory.getUseBufferLength()-7 >= lengthOfFileName) {
-                            // file path
-                            char name[100] = {0};
-                            memcpy(name, pointer+7, lengthOfFileName);
-                            printf("nameLenth:%u, file size:%u, fileName:%s\n", lengthOfFileName, fileSize, name);
-                            // open file
-                            // directory + file path separator + file name
-                            std::string fileName = name;
-                            // convert peer separator to local
-                            if (FilePathSeparator != peerFileSeparator) {
-                                size_t pos = 0;
-                                while ((pos = fileName.find_first_of(peerFileSeparator, pos)) != std::string::npos) {
-                                    fileName = fileName.replace(pos, 1, 1, FilePathSeparator);
-                                    while (pos < fileName.length() && fileName[pos] == peerFileSeparator) {
-                                        ++pos;
-                                    }
-                                }
+                if (file == NULL && packetMemory.getUseBufferLength() > 7) {
+                    char *pointer = (char *)packetMemory.getBufferPointer();
+                    // get peer path separator
+                    char peerPathSeparator = *pointer;
+                    // get length of file's name
+                    unsigned short lengthOfFileName = *((unsigned short *)(pointer+1));
+                    lengthOfFileName = convertNetworkEndianToLocalEndian_us(lengthOfFileName);
+                    // get file's size
+                    unsigned int ui = *(unsigned int *)(pointer+3);
+                    fileSize = convertNetworkEndianToLocalEndian_ui(ui);
+                    if (packetMemory.getUseBufferLength()-7 >= lengthOfFileName) {
+                        // get relative file path
+                        char name[100] = {0};
+                        memcpy(name, pointer+7, lengthOfFileName);
+                        printf("nameLenth:%u, file size:%u, fileName:%s\n", lengthOfFileName, fileSize, name);
+                        std::string fileName = name;
+                        // convert peer path to local path
+                        if (FilePathSeparator != peerPathSeparator) {
+                            size_t pos = 0;
+                            while ((pos = fileName.find_first_of(peerPathSeparator, pos)) != std::string::npos) {
+                                fileName = fileName.replace(pos, 1, 1, FilePathSeparator);
+                                /*
+                                while (pos < fileName.length() && fileName[pos] == peerFileSeparator) {
+                                    ++pos;
+                                }*/
                             }
-                            std::string filePath = directory;
-                            if (!(filePath[filePath.length()-1] == FilePathSeparator)) {
-                                filePath.append(1, FilePathSeparator);
-                            }
-                            filePath.append(fileName);
-                            bool res = createAllMissingDirectoriesOnThePath(filePath);
-                            if (res == false) {
-                                printf("can't create missing directory on path:%s\n", filePath.c_str());
-                                break;
-                            }
-                            file = fopen(filePath.c_str(), "wb");
-                            if (!file) {
-                                printf("open file error, %s\n", filePath.c_str());
-                                break;
-                            }
-                            printf("open file success %s\n", filePath.c_str());
-                            packetMemory.removeBuffer(7+lengthOfFileName);
                         }
+                        // local path = directory + file path separator + relative file path
+                        std::string filePath = directory;
+                        if (!(filePath[filePath.length()-1] == FilePathSeparator)) {
+                            filePath.append(1, FilePathSeparator);
+                        }
+                        filePath.append(fileName);
+                        bool res = createAllMissingDirectoriesOnThePath(filePath);
+                        if (res == false) {
+                            printf("can't create missing directory on path:%s\n", filePath.c_str());
+                            break;
+                        }
+                        file = fopen(filePath.c_str(), "wb");
+                        if (!file) {
+                            printf("open file error, %s\n", filePath.c_str());
+                            break;
+                        }
+                        printf("open file success %s\n", filePath.c_str());
+                        packetMemory.removeBuffer(7+lengthOfFileName);
                     }
                 }
-                if (file) {
-                    if (packetMemory.getUseBufferLength() > 0) {
-                        bool finishRecv = false;
-                        unsigned int dataSizeNeedWrite = packetMemory.getUseBufferLength();
-                        if (packetMemory.getUseBufferLength() >= fileSize-writenFileSize) {
-                            finishRecv = true;
-                            dataSizeNeedWrite = (unsigned int)(fileSize-writenFileSize);
-                        }
-                        size_t sizeWrite = fwrite(packetMemory.getBufferPointer(), 1, (size_t)dataSizeNeedWrite, file);
-                        if (sizeWrite != dataSizeNeedWrite) {
-                            printf("r is %ld, %u, write error, write size:%zu\n", r, dataSizeNeedWrite, sizeWrite);
-                            break;
-                        } else {
-//                            printf("write success, write size:%zu\n", sizeWrite);
-                            packetMemory.removeBuffer((unsigned int)sizeWrite);
-                            writenFileSize += sizeWrite;
-                        }
-                        if (finishRecv) {
-                            printf("finish receive file successfully\n");
-                            fclose(file);
-                            file = NULL;
-                            writenFileSize = 0;
-                        }
+                if (file && packetMemory.getUseBufferLength() > 0) {
+                    bool finishRecv = false;
+                    unsigned int dataSizeNeedWrite = packetMemory.getUseBufferLength();
+                    if (packetMemory.getUseBufferLength() >= fileSize-writenFileSize) {
+                        finishRecv = true;
+                        dataSizeNeedWrite = (unsigned int)(fileSize-writenFileSize);
+                    }
+                    size_t sizeWrite = fwrite(packetMemory.getBufferPointer(), 1, (size_t)dataSizeNeedWrite, file);
+                    if (sizeWrite != dataSizeNeedWrite) {
+                        printf("r is %ld, %u, write error, write size:%zu\n", r, dataSizeNeedWrite, sizeWrite);
+                        break;
+                    } else {
+                        packetMemory.removeBuffer((unsigned int)sizeWrite);
+                        writenFileSize += sizeWrite;
+                    }
+                    if (finishRecv) {
+                        printf("finish receive file successfully\n");
+                        fclose(file);
+                        file = NULL;
+                        writenFileSize = 0;
                     }
                 }
             } else if (r == 0) {
