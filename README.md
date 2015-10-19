@@ -3,13 +3,13 @@
 transmit directory/files utility through TCP
 
 **srFile** is a utility used to transmit file or directory through TCP. It works on Mac OS, I'll add a Windows version soon.
-There're two commands 'send' and 'recv'.
+There're two commands `send` and `recv`.
 
-a) send has two arguments, they indicates where the file/directory is and where file/directory send to respectively.
+a) send has two arguments, they indicates where the file/directory is and where file/directory send to.
 
 **send command pattern: send localFilePath/localDirectory remoteAddress:remotePort**
 
-b) receive also has two arguments, they indicates where to keep the file/directory received and the port to listen.
+b) receive also has two arguments, they indicate the local path to store the file/directory received and the port number to listen.
 
 **recv command pattern: recv localDirectoryPath listenPort**
 
@@ -24,8 +24,8 @@ An example of recv, it listens on port 1235 and put all the files or directory i
 
 # Detail of send
 
-First it enumerates all the files and sub directories recursively, (if you send a file, there is just one file), for each of them, there are five parts:
-* 1. path separator of file system which runs the send command ('/' on Mac OS and '\' on Windows)
+First it enumerates all the files and sub directories recursively, for each of them, the transition stream contains 5 parts (All the string is UTF-8 formatted)
+* 1. path separator of file system which runs the send command (/(slash) on Mac OS and \(backslash) on Windows)
 * 2. length of file name (2 bytes with network endian)
 * 3. file size (4 bytes with network endian)
 * 4. file name
