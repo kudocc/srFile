@@ -1,3 +1,5 @@
+I work on a macbook pro and I have a desktop which runs Windows 7. How should I share files between them ? Write a program to acheve that, we're programmers!
+
 # Introduce
 
 transmit directory/files utility through TCP
